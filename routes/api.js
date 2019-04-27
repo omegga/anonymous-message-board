@@ -17,15 +17,15 @@ const SALT_ROUNDS = 10;
 module.exports = function (app, db) {
   
   app.route('/api/threads/:board')
-    .post(async (req, res, next) => {
+    .post(async (req, res) => {
       const { board, text, delete_password } = req.body;
-      if (!delete_password) {
-        return res.send('password is not valid');
+      if (!board || !text || !delete_password) {
+        return res.send('error');
       }
       try {
         const existingBoard = await db.collection('threads').findOne({ board, text });
         if (existingBoard) {
-          return res.send('thread already exists');
+          return res.send('error');
         }
         const date = Date.now();
         const hashedPassword = await bcrypt.hash(delete_password, SALT_ROUNDS);
@@ -44,15 +44,15 @@ module.exports = function (app, db) {
         return res.send(e);
       }
     })
-    .delete(async (req, res, next) => {
+    .delete(async (req, res) => {
       const { board, thread_id, delete_password } = req.body;
       if (!board || !thread_id || !delete_password) {
-        return res.send('missing fields');
+        return res.send('error');
       }
       try {
         const threadToRemove = await db.collection('threads').findOne({ _id: new ObjectID(thread_id), board });
         if (!threadToRemove) {
-          return res.send('board does not exist');
+          return res.send('error');
         }
         const matchingPassword = await bcrypt.compare(delete_password, threadToRemove.delete_password);
         if (!matchingPassword) {
@@ -67,6 +67,22 @@ module.exports = function (app, db) {
       }
       return res.send('success');
     })
+    .put(async (req, res) => {
+      const { thread_id } = req.body;
+      if (!thread_id) {
+        return res.send('error');
+      }
+      try {
+        const modifyResult = await db.collection('threads').findOneAndUpdate({ _id: new ObjectID(thread_id) }, { $set: { reported: true } });
+        if (!modifyResult.ok || modifyResult.value === null) {
+          return res.send('error');
+        }
+        return res.send('success');
+      } catch (e) {
+        console.error(e);
+        return res.send('error');
+      }
+    });
     
   app.route('/api/replies/:board');
 
