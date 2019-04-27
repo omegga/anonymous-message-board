@@ -13,6 +13,10 @@ var runner            = require('./test-runner');
 
 var app = express();
 
+app.use((req, res, next) => {
+  console.log(req.method, req.url, req.ip);
+  next();
+});
 app.use('/public', express.static(process.cwd() + '/public'));
 
 app.use(cors({origin: '*'})); //For FCC testing purposes only
