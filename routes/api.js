@@ -82,6 +82,23 @@ module.exports = function (app, db) {
         console.error(e);
         return res.send('error');
       }
+    })
+    .get(async (req, res) => {
+      const { board } = req.params;
+      if (!board) {
+        return res.send('error');
+      }
+      try {
+        const threadsList = await db.collection('threads')
+          .find({ board })
+          .project({ delete_password: 0, reported: 0 })
+          .sort({ bumped_on: -1 })
+          .toArray();
+        return res.json(threadsList);
+      } catch (e) {
+        console.error(e);
+        return res.send('error');
+      }
     });
     
   app.route('/api/replies/:board');
