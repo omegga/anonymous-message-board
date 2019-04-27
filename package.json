@@ -10,6 +10,7 @@
 		"start": "node server.js"
 	},
 	"dependencies": {
+		"bcrypt": "^3.0.6",
 		"body-parser": "^1.15.2",
 		"chai": "^3.5.0",
 		"chai-http": "^4.3.0",

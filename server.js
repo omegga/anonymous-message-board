@@ -58,7 +58,7 @@ MongoClient.connect(process.env.DB, { useNewUrlParser: true }, (err, client) => 
   fccTestingRoutes(app);
   
   //Routing for API 
-  apiRoutes(app);
+  apiRoutes(app, db);
   
   //Sample Front-end
   
