@@ -41,12 +41,12 @@ module.exports = function (app, db) {
       }
     })
     .delete(async (req, res) => {
-      const { board, thread_id, delete_password } = req.body;
-      if (!board || !thread_id || !delete_password) {
+      const { thread_id, delete_password } = req.body;
+      if (!thread_id || !delete_password) {
         return res.send('error');
       }
       try {
-        const threadToRemove = await db.collection('threads').findOne({ _id: new ObjectID(thread_id), board });
+        const threadToRemove = await db.collection('threads').findOne({ _id: new ObjectID(thread_id) });
         if (!threadToRemove) {
           return res.send('error');
         }
@@ -58,10 +58,10 @@ module.exports = function (app, db) {
         if (!deleteResult.ok) {
           return res.send('error');
         }
+        return res.send('success');
       } catch (e) {
         return res.send('err');
       }
-      return res.send('success');
     })
     .put(async (req, res) => {
       const { thread_id } = req.body;
@@ -179,6 +179,50 @@ module.exports = function (app, db) {
       } catch (e) {
         console.error(e);
         return res.send('error');
+      }
+    })
+    .delete(async (req, res) => {
+      const { thread_id, reply_id, delete_password } = req.body;
+      if (!thread_id || !reply_id || !delete_password) {
+        return res.send('error');
+      }
+      try {
+        const threadWithReplyToRemove = await db.collection('threads')
+          .aggregate([
+            {
+              $match: {
+                _id: new ObjectID(thread_id)
+              }
+            },
+            {
+              $unwind: "$replies"
+            }
+          ])
+          .toArray()
+        const [ { replies: replyToRemove } ] = threadWithReplyToRemove;
+        if (!threadWithReplyToRemove) {
+          return res.send('error');
+        }
+        const matchingPassword = await bcrypt.compare(delete_password, replyToRemove.delete_password);
+        if (!matchingPassword) {
+          return res.send('incorrect password');
+        }
+        const updateResult = await db.collection('threads')
+          .findOneAndUpdate({ 
+            _id: new ObjectID(thread_id),
+            "replies._id": new ObjectID(reply_id)
+          }, {
+            $set: {
+              "replies.$.text": "[deleted]"
+            }
+          });
+        if (!updateResult.ok || updateResult === null) {
+          return res.send('error');
+        }
+        return res.send('success');
+      } catch (e) {
+        console.error(e);
+        return res.send('err');
       }
     });
 
