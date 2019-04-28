@@ -7,6 +7,7 @@ var cors        = require('cors');
 const dotenv = require('dotenv');
 dotenv.config();
 const MongoClient = require('mongodb').MongoClient;
+const helmet = require('helmet');
 
 var apiRoutes         = require('./routes/api.js');
 var fccTestingRoutes  = require('./routes/fcctesting.js');
@@ -31,6 +32,11 @@ MongoClient.connect(process.env.DB, { useNewUrlParser: true }, (err, client) => 
     console.log(req.method, req.url, req.ip);
     next();
   });
+  
+  app.use(helmet.dnsPrefetchControl());
+  app.use(helmet.frameguard({ action: 'sameorigin' }));
+  app.use(helmet.referrerPolicy({ policy: 'same-origin' }));
+
   app.use('/public', express.static(process.cwd() + '/public'));
   
   app.use(cors({origin: '*'})); //For FCC testing purposes only

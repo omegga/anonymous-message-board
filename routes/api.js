@@ -111,6 +111,14 @@ module.exports = function (app, db) {
                 "replies": { $slice: [ "$replies", 3 ] },
                 "replycount": { $size: "$replies" }
               }
+            },
+            {
+              $sort: {
+                "created_on": -1
+              }
+            },
+            {
+              $limit: 10
             }
           ])
           .toArray();
@@ -224,6 +232,9 @@ module.exports = function (app, db) {
     })
     .get(async (req, res) => {
       const thread_id = req.query.thread_id;
+      if (!thread_id) {
+        return res.send('error');
+      }
       try {
         const result = await threadsCollection
         .aggregate([
