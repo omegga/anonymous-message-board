@@ -37,7 +37,8 @@ module.exports = function (app, db) {
         console.log(result.ops[0]);
         return res.redirect(`/b/${board}`);
       } catch (e) {
-        return res.send(e);
+        console.error(e);
+        return res.send('error');
       }
     })
     .delete(async (req, res) => {
@@ -60,7 +61,8 @@ module.exports = function (app, db) {
         }
         return res.send('success');
       } catch (e) {
-        return res.send('err');
+        console.error(e);
+        return res.send('error');
       }
     })
     .put(async (req, res) => {
@@ -157,7 +159,7 @@ module.exports = function (app, db) {
         }
         return res.redirect(`/b/${board}/${thread_id}`);
       } catch (e) {
-        console.log(e);
+        console.error(e);
         return res.send('error');
       }
     })
@@ -222,8 +224,54 @@ module.exports = function (app, db) {
         return res.send('success');
       } catch (e) {
         console.error(e);
-        return res.send('err');
+        return res.send('error');
       }
+    })
+    .get(async (req, res) => {
+      const thread_id = req.query.thread_id;
+      try {
+        const result = await db.collection('threads')
+        .aggregate([
+          {
+            $match: { 
+              _id: new ObjectID(thread_id) 
+            }
+          },
+          {
+            $unwind: "$replies"
+          },
+          {
+            $sort: {
+              "replies.created_on": -1
+            }
+          },
+          {
+            $project: {
+              "replies.delete_password": 0,
+              "replies.reported": 0
+            }
+          },
+          {
+            $group: {
+              _id: "$_id",
+              text: { $first: "$text" },
+              board: { $first: "$board" },
+              created_on: { $first: "$created_on" },
+              bumped_on: { $first: "$bumped_on" },
+              replies: {
+                $push: "$replies"
+              }
+            }
+          }
+        ])
+        .toArray();
+        const [ thread ] = result;
+        return res.json(thread);
+      } catch (e) {
+        console.error(e);
+        return res.send('error')
+      }
+      return res.send('temp');
     });
 
 };
