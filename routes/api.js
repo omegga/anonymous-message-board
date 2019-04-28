@@ -15,7 +15,7 @@ const ObjectID = require('mongodb').ObjectID;
 const SALT_ROUNDS = 10;
 
 module.exports = function (app, db) {
-  
+  const threadsCollection = db.collection('threads');
   app.route('/api/threads/:board')
     .post(async (req, res) => {
       const { board, text, delete_password } = req.body;
@@ -25,7 +25,7 @@ module.exports = function (app, db) {
       try {
         const date = Date.now();
         const hashedPassword = await bcrypt.hash(delete_password, SALT_ROUNDS);
-        const result = await db.collection('threads').insertOne({
+        const result = await threadsCollection.insertOne({
           text,
           board,
           created_on: new Date(date),
@@ -47,7 +47,7 @@ module.exports = function (app, db) {
         return res.send('error');
       }
       try {
-        const threadToRemove = await db.collection('threads').findOne({ _id: new ObjectID(thread_id) });
+        const threadToRemove = await threadsCollection.findOne({ _id: new ObjectID(thread_id) });
         if (!threadToRemove) {
           return res.send('error');
         }
@@ -55,7 +55,7 @@ module.exports = function (app, db) {
         if (!matchingPassword) {
           return res.send('incorrect password');
         }
-        const deleteResult = await db.collection('threads').findOneAndDelete({ _id: threadToRemove._id });
+        const deleteResult = await threadsCollection.findOneAndDelete({ _id: threadToRemove._id });
         if (!deleteResult.ok) {
           return res.send('error');
         }
@@ -71,7 +71,7 @@ module.exports = function (app, db) {
         return res.send('error');
       }
       try {
-        const modifyResult = await db.collection('threads').findOneAndUpdate({ _id: new ObjectID(thread_id) }, { $set: { reported: true } });
+        const modifyResult = await threadsCollection.findOneAndUpdate({ _id: new ObjectID(thread_id) }, { $set: { reported: true } });
         if (!modifyResult.ok || modifyResult.value === null) {
           return res.send('error');
         }
@@ -87,7 +87,7 @@ module.exports = function (app, db) {
         return res.send('error');
       }
       try {
-        const threadsList = await db.collection('threads')
+        const threadsList = await threadsCollection
           .aggregate([
             {
               $match: { board }
@@ -136,7 +136,7 @@ module.exports = function (app, db) {
       try {
         const hashedPassword = await bcrypt.hash(delete_password, SALT_ROUNDS);
         const date = Date.now();
-        const result = await db.collection('threads')
+        const result = await threadsCollection
           .findOneAndUpdate(
             { _id: ObjectID(thread_id) }, 
             { 
@@ -169,7 +169,7 @@ module.exports = function (app, db) {
         return res.send('error');
       }
       try {
-        const modifyResult = await db.collection('threads')
+        const modifyResult = await threadsCollection
           .findOneAndUpdate(
             { _id: new ObjectID(thread_id), "replies._id": new ObjectID(reply_id) }, 
             { $set: { "replies.$.reported": true } }
@@ -189,7 +189,7 @@ module.exports = function (app, db) {
         return res.send('error');
       }
       try {
-        const threadWithReplyToRemove = await db.collection('threads')
+        const threadWithReplyToRemove = await threadsCollection
           .aggregate([
             {
               $match: {
@@ -209,7 +209,7 @@ module.exports = function (app, db) {
         if (!matchingPassword) {
           return res.send('incorrect password');
         }
-        const updateResult = await db.collection('threads')
+        const updateResult = await threadsCollection
           .findOneAndUpdate({ 
             _id: new ObjectID(thread_id),
             "replies._id": new ObjectID(reply_id)
@@ -230,7 +230,7 @@ module.exports = function (app, db) {
     .get(async (req, res) => {
       const thread_id = req.query.thread_id;
       try {
-        const result = await db.collection('threads')
+        const result = await threadsCollection
         .aggregate([
           {
             $match: { 
