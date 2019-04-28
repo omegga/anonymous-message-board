@@ -1,14 +1,5 @@
-/*
-*
-*
-*       Complete the API routing below
-*
-*
-*/
-
 'use strict';
 
-// var expect = require('chai').expect;
 const bcrypt = require('bcrypt');
 const ObjectID = require('mongodb').ObjectID;
 
@@ -18,7 +9,8 @@ module.exports = function (app, db) {
   const threadsCollection = db.collection('threads');
   app.route('/api/threads/:board')
     .post(async (req, res) => {
-      const { board, text, delete_password } = req.body;
+      const { text, delete_password } = req.body;
+      const board = req.body.board || req.params.board;
       if (!board || !text || !delete_password) {
         return res.send('error');
       }
@@ -35,7 +27,7 @@ module.exports = function (app, db) {
           replies: []
         });
         console.log(result.ops[0]);
-        return res.redirect(`/b/${board}`);
+        return res.redirect(`/b/${board}/`);
       } catch (e) {
         console.error(e);
         return res.send('error');
@@ -96,7 +88,10 @@ module.exports = function (app, db) {
               $project: { delete_password: 0, reported: 0 }
             },
             {
-              $unwind: "$replies"
+              $unwind: {
+                path: "$replies",
+                preserveNullAndEmptyArrays: true
+              }
             },
             {
               $sort: { "replies.created_on": -1 }
